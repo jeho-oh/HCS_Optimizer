@@ -1,3 +1,6 @@
 [submodule "Kclause-Smarch"]
 	path = Kclause-Smarch
 	url = git@github.com:jeho-oh/Kclause-Smarch.git
+[submodule "Kclause_Smarch"]
+	path = Kclause_Smarch
+	url = git@github.com:jeho-oh/Kclause_Smarch.git
