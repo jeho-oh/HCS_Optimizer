@@ -1,44 +1,13 @@
 import os
 import time
 from operator import itemgetter
+import datetime
 
-from scipy.stats import ttest_ind, pearsonr
+from scipy.stats import pearsonr
 
 from Kclause_Smarch.Smarch.smarch import sample, read_dimacs, read_constraints
 from evalutation import Kconfig, SPLConqueror
-
-
-# find noteworthy features from benchmarked samples
-def get_noteworthy(measurements, obj_):
-    noteworthy = list()
-
-    # sort by objective
-    sortedlist = sorted(measurements, key=itemgetter(obj_), reverse=False)
-
-    # find common features from best two measurements
-    common = list(set(sortedlist[0][0]).intersection(sortedlist[1][0]))
-
-    # check noteworthiness of common features
-    for c in common:
-        in_measure = list()
-        ex_measure = list()
-
-        for m in measurements:
-            if c in m[0]:
-                in_measure.append(m[obj_])
-            else:
-                ex_measure.append(m[obj_])
-
-        if len(in_measure) > 1 and len(ex_measure) > 1:
-            stat, pvalue = ttest_ind(in_measure, ex_measure, equal_var=False)
-
-            if stat < 0 and pvalue < 0.05:
-                found = list()
-                found.append(c)
-                noteworthy.append(found)
-
-    return noteworthy
-
+from analysis import get_noteworthy
 
 class Searcher:
     features = list()
@@ -189,34 +158,47 @@ class Searcher:
 
 # run script
 if __name__ == "__main__":
-    target = "fiasco_17_10"
-    n = 100
+    target = "HiPAcc"
+    n = 66
+    rec = 1
     obj = [1]
-    rep = 1
+    rep = 97
 
     #dimacs = os.path.dirname(os.path.realpath(__file__)) + "/FM/" + target + ".dimacs"
-    #dimacs = "/home/jeho-lab/BitBlasting/Norbert/" + target + ".dimacs"
-    dimacs = "/home/jeho-lab/BitBlasting/Kconfig_numerical/" + target + ".dimacs"
-    const = os.path.dirname(dimacs) + "/" + target + ".const"
+    dimacs = "/home/jeho-lab/BitBlasting/Norbert/" + target + ".dimacs"
+    #dimacs = "/home/jeho-lab/BitBlasting/Kconfig_numerical/" + target + ".dimacs"
+    const = ''#os.path.dirname(dimacs) + "/" + target + ".const"
     wdir = os.path.dirname(dimacs) + "/smarch"
     data = "/home/jeho-lab/Dropbox/BitBlasting/Norbert/" + target + ".csv"
 
     features, clauses, vcount = read_dimacs(dimacs)
-    #eval = SPLConqueror(target, features, data)
-    eval = Kconfig(target, features, wdir)
+    eval = SPLConqueror(target, features, data)
+    #eval = Kconfig(target, features, wdir)
 
-    for i in range(0, rep):
+    dt = datetime.datetime.now()
+    out = os.path.dirname(dimacs) + "/" + target + "_" + str(rec) + "_" + str(dt.hour) + str(dt.minute) + ".out"
+    with open(out, 'w') as file:
+        for i in range(0, rep):
+            searcher = Searcher(dimacs, const, eval)
+            result = searcher.srs(n, obj, rec, False, 200)
+            result = sorted(result, key=itemgetter(1), reverse=False)
+            #print("Best: " + str(result[0][1]))
 
-        searcher = Searcher(dimacs, const, eval)
 
-        result = searcher.srs(n, obj, 1, True, 100)
+            srank = eval.get_rank(result[0], 0)
+            urank = 1 / (len(result)+1)
+            res = ""
+            res += str(len(result)) + ","
+            res += str(result[0][1][0]) + ","
+            res += str(srank) + ","
+            res += str(urank) + ","
+            if srank < urank:
+                res += "1"
+            else:
+                res += "0"
 
-        #print()
-        #print("<<Search results>>")
-        #print("N: " + str(len(result)))
-        print(str(len(result)), end=',')
-        result = sorted(result, key=itemgetter(1), reverse=False)
-        print("Best: " + str(result[0][1:]))
-        #print(str(result[0][0]))
-        #print(eval.get_rank(result[0], 0))
+            print(res)
+            file.write(res + "\n")
+
+    file.close()
 
