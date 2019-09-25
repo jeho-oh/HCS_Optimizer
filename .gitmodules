@@ -4,3 +4,7 @@
 [submodule "Kclause_Smarch"]
 	path = Kclause_Smarch
 	url = git@github.com:jeho-oh/Kclause_Smarch.git
+[submodule "Smarch"]
+	path = Smarch
+	url = git@github.com:jeho-oh/Smarch.git
+	branch = master
