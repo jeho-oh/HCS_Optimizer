@@ -1,0 +1,48 @@
+c 1 DIAGNOSTIC bool
+c 2 PS32K alt
+c 3 CACHESIZE bool
+c 4 HAVE_STATISTICS bool
+c 5 PS16K alt
+c 6 HAVE_REPLICATION bool
+c 7 PS8K alt
+c 8 HAVE_CRYPTO bool
+c 9 HAVE_SEQUENCE bool
+c 10 CS16MB alt
+c 11 PS1K alt
+c 12 HAVE_VERIFY bool
+c 13 CS32MB alt
+c 14 HAVE_HASH bool
+c 15 CS64MB alt
+c 16 PAGESIZE bool
+c 17 CS512MB alt
+c 18 PS4K alt
+p cnf 18 29
+3 -10 0
+3 -13 0
+3 -15 0
+3 -17 0
+10 13 15 17 -3 0
+-10 -13 0
+-10 -15 0
+-10 -17 0
+-13 -15 0
+-13 -17 0
+-15 -17 0
+16 0
+3 0
+16 -11 0
+16 -18 0
+16 -7 0
+16 -5 0
+16 -2 0
+11 18 7 5 2 -16 0
+-11 -18 0
+-11 -7 0
+-11 -5 0
+-11 -2 0
+-18 -7 0
+-18 -5 0
+-18 -2 0
+-7 -5 0
+-7 -2 0
+-5 -2 0

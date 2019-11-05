@@ -8,3 +8,6 @@
 	path = Smarch
 	url = git@github.com:jeho-oh/Smarch.git
 	branch = master
+[submodule "KUS"]
+	path = KUS
+	url = git@github.com:meelgroup/KUS.git

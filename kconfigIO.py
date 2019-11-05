@@ -1,13 +1,15 @@
 import random
 import os
 import shutil
-from subprocess import check_call
+from subprocess import check_call, DEVNULL
 from pathlib import Path
 
-from Smarch.smarch import read_dimacs
+
+root = os.path.dirname(os.path.abspath(__file__))
 
 home = str(Path.home())
-BUILD = 'bash ' + home + '/git/kconfig_case_studies/buildSamples.sh'
+KCONFIG = "/home/jeho-lab/git/kconfig_case_studies"
+BUILD = 'bash ' + root + '/buildSamples.sh'
 
 
 def is_int(s):
@@ -19,6 +21,49 @@ def is_int(s):
 
 
 def gen_configs(target_, features_, samples_, cdir_):
+    # remove existing contents on the folder
+    for f in os.listdir(cdir_):
+        file_path = os.path.join(cdir_, f)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)
+
+    # generate .config files from samples
+    i = 0
+    for s in samples_:
+        config = ""
+        for sel in s:
+            feature = features_[abs(sel) - 1]
+
+            if sel > 0:
+                if feature[2] == 'nonbool':
+                    config = config + feature[1] + "=" + feature[3] + "\n"
+                else:
+                    config = config + feature[1] + "=y\n"
+
+            elif sel < 0:
+                if feature[2] == 'nonbool':
+                    if is_int(feature[3]):
+                        config = config + feature[1] + "=0\n"
+                    else:
+                        config = config + feature[1] + "=\"\"\n"
+                else:
+                    config = config + "# " + feature[1] + " is not set\n"
+
+        with open(cdir_ + "/" + str(i) + ".config", 'w') as outfile:
+            outfile.write(config)
+            outfile.close()
+
+        i += 1
+
+    #print("Configs generated")
+
+
+def gen_configs_nf(target_, features_, samples_, cdir_):
     nfs = list()
     bfs = list()
     lfs = list()
@@ -177,6 +222,6 @@ def read_configs_kmax(features_, cdir_):
 def build_samples(target_, configs_):
     # run vagrant for build
     if target_ == 'fiasco_17_10':
-        check_call(BUILD + " " + target_ + " " + configs_ + " " + target_ + "/src/kernel/fiasco", shell=True)
+        check_call(BUILD + " " + target_ + " " + configs_ + " " + target_ + "/src/kernel/fiasco" + " " + KCONFIG, shell=True, stdout=DEVNULL, stderr=DEVNULL)
     else:
-        check_call(BUILD + " " + target_ + " " + configs_ + " " + target_, shell=True)
+        check_call(BUILD + " " + target_ + " " + configs_ + " " + target_ + " " + KCONFIG, shell=True, stdout=DEVNULL, stderr=DEVNULL)
