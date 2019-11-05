@@ -25,13 +25,14 @@ Following systems are currently available:
 * LVAT: fiasco, uClinux, ecos-icse11, freebsd-icse11
 * Kconfig: axtls_2_1_4, toybox_0_7_5, fiasco_17_10, busybox_1_28_0, uClibc-ng_1_0_29
 
-To optimize Kconfig based systems, check kconfig_case_study repository path in kconfigIO.py (variable KCONFIG)
+To optimize Kconfig based systems, check kconfig_case_study repository path in kconfigIO.py (variable KCONFIG).
 
-The FM folder contains the dimacs files to sample configurations
-The BM folder contains the benchmark data for SPLConqueror and LVAT systems
+The FM folder contains the dimacs files to sample configurations.
+The BM folder contains the benchmark data for SPLConqueror and LVAT systems.
 
-evaluation.py manages how configurations are benchmarked
-analysis.py manages how noteworthy features are found for recursion
+evaluation.py manages how configurations are benchmarked.
+
+analysis.py manages how noteworthy features are found for recursion.
 
 ## Output
 The search result will be printed on the console (there is a code to output to a file, commented)
