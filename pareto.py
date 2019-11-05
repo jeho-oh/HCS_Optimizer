@@ -1,11 +1,13 @@
 from scipy.stats import beta
 import matplotlib.pyplot as plt
 import os
+from sys import path
+
+root = os.path.dirname(os.path.abspath(__file__))
+path.append(root + "/Smarch")
 
 from Smarch.smarch_opt import master, read_dimacs, read_constraints
 from evalutation import Kconfig, SPLConqueror
-
-root = os.path.dirname(os.path.abspath(__file__))
 
 
 def fig2(target_, obj_, goal_=()):

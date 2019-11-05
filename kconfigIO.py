@@ -8,7 +8,7 @@ from pathlib import Path
 root = os.path.dirname(os.path.abspath(__file__))
 
 home = str(Path.home())
-KCONFIG = "/home/jeho-lab/git/kconfig_case_studies"
+KCONFIG = home + "/git/kconfig_case_studies"
 BUILD = 'bash ' + root + '/buildSamples.sh'
 
 

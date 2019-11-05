@@ -1,16 +1,18 @@
 import os
+from sys import path
 import time
 from operator import itemgetter
 import datetime
 from subprocess import getoutput
 from scipy.stats import tmean, tstd
 
+root = os.path.dirname(os.path.abspath(__file__))
+KUS = os.path.dirname(os.path.abspath(__file__)) + "/KUS"
+path.append(root + "/Smarch")
+
 from Smarch.smarch_opt import master, read_dimacs, read_constraints, gen_dimacs, checksat, count
 from evalutation import Kconfig, SPLConqueror, LVAT
 from analysis import get_noteworthy
-
-root = os.path.dirname(os.path.abspath(__file__))
-KUS = os.path.dirname(os.path.abspath(__file__)) + "/KUS"
 
 
 def sample(vcount_, clauses_, n_, constraints_):
@@ -222,7 +224,6 @@ if __name__ == "__main__":
     obj = 0                 # objective index to optimize
     goal = (0, 0)           # goal point to optimize for MOO (check evaluation.py for setup)
     rep = 1                 # numer of repetitions to get statistics on results
-
 
     dimacs = root + "/FM/" + target + ".dimacs"
     constfile = root + "/FM/" + target + ".const"

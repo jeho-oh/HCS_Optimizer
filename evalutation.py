@@ -1,11 +1,13 @@
 import os
+from sys import path
 import shutil
 import math
 
+root = os.path.dirname(os.path.abspath(__file__))
+path.append(root + "/Smarch")
+
 from Smarch.smarch_opt import master, read_dimacs
 from kconfigIO import gen_configs, build_samples, KCONFIG
-
-root = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_distance(p1, p2):

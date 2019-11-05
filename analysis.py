@@ -1,6 +1,5 @@
 from scipy.stats import ttest_ind, mannwhitneyu, tmean
 import math
-from Smarch.smarch_opt import checksat
 
 
 def get_distance(p1, p2):
