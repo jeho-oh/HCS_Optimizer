@@ -54,7 +54,7 @@ class Kconfig:
         gen_configs(self.target, self.features, samples_, self.wdir)
 
         # build samples
-        build_samples(self.target, 'nbuild/configs')
+        build_samples(self.target, 'nbuild/configs','/media/space/elkdat/linux/')
 
         # check build errors
         i = 0
@@ -111,7 +111,7 @@ class Kconfig:
 
     def evaluate_existing(self, configs):
         # build samples
-        build_samples(self.target, configs)
+        build_samples(self.target, configs,'/media/space/elkdat/linux/')
 
         # read build size reports
         file = self.wdir + "/binary_sizes.txt"

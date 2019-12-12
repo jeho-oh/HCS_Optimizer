@@ -8,8 +8,8 @@ from pathlib import Path
 root = os.path.dirname(os.path.abspath(__file__))
 
 home = str(Path.home())
-KCONFIG = home + "/git/kconfig_case_studies"
-BUILD = 'bash ' + root + '/buildSamples.sh'
+KCONFIG = '/home/nod/Desktop/kconfig_case_studies'
+BUILD = 'bash ' + root + '/buildSamplesLinux.sh'
 
 
 def is_int(s):
@@ -218,10 +218,18 @@ def read_configs_kmax(features_, cdir_):
 
     return samples
 
+# $1: target name
+# $2: config folder name
+# $3: makefile location
+# $4: Kconfig directory
 
-def build_samples(target_, configs_):
+def build_samples(target_, configs_, makefile_):
     # run vagrant for build
     if target_ == 'fiasco_17_10':
-        check_call(BUILD + " " + target_ + " " + configs_ + " " + target_ + "/src/kernel/fiasco" + " " + KCONFIG, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+        check_call(BUILD + " " + target_ + " " + configs_ + " " + makefile_ + "/src/kernel/fiasco" + " " + KCONFIG, shell=True, stdout=DEVNULL, stderr=DEVNULL)
     else:
-        check_call(BUILD + " " + target_ + " " + configs_ + " " + target_ + " " + KCONFIG, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+        from fakebuild import gen
+        import glob
+        count = len(glob.glob1("/home/nod/Desktop/kconfig_case_studies/cases/linux_4_17_6/nbuild/configs/","*.config"))
+        gen(count, "/home/nod/Desktop/kconfig_case_studies/cases/linux_4_17_6/nbuild/configs/")
+        check_call("bash bb.sh", shell=True, stdout=DEVNULL, stderr=DEVNULL)

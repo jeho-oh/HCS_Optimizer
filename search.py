@@ -5,7 +5,7 @@ from operator import itemgetter
 import datetime
 from subprocess import getoutput
 from scipy.stats import tmean, tstd
-
+import sampleLinux
 root = os.path.dirname(os.path.abspath(__file__))
 KUS = os.path.dirname(os.path.abspath(__file__)) + "/KUS"
 path.append(root + "/Smarch")
@@ -15,46 +15,16 @@ from evalutation import Kconfig, SPLConqueror, LVAT
 from analysis import get_noteworthy
 
 
-def sample(vcount_, clauses_, n_, constraints_):
-    """ Sample configurations using KUS (unstable) """
-    _samples = list()
-    _tempdimacs = KUS + "/temp.cnf"
-
-    if os.path.isfile(_tempdimacs):
-        os.remove(_tempdimacs)
-
-    if os.path.isfile(_tempdimacs + '.nnf'):
-        os.remove(_tempdimacs + '.nnf')
-
-    if os.path.isfile(KUS + "/samples.txt"):
-        os.remove(KUS + "/samples.txt")
-
-    gen_dimacs(vcount_, clauses_, constraints_, _tempdimacs)
-
-    remaining = count(_tempdimacs, [])
-    if remaining < n_:
-        n_ = remaining
-
-    res = getoutput('python ' + KUS + '/KUS.py --samples ' + str(n_) + ' ' + _tempdimacs)
-    #print(res)
-
-    with open(KUS + "/samples.txt") as f:
-        for line in f:
-            raw = line.split(',')[1].split(' ')
-            sol = {int(v) for v in raw[1:len(raw)-1]}
-            if not checksat(_tempdimacs, [[s] for s in sol]):
-                print("Samplie invalid")
-                return False
-            _samples.append(sol)
-
-    return _samples
-
 
 class Searcher:
     dimacs = ''
     features = list()
-    clauses = list()
-    vcount = list()
+    linux = "/media/space/elkdat/linux/"
+    outdir = "/home/nod/Desktop/kconfig_case_studies/cases/linux_4_17_6/nbuild/configs"
+
+    # clauses = list()
+    # vcount = list()
+    numbering = {}
     const = list()
     eval = list()
     wdir = ''
@@ -63,7 +33,7 @@ class Searcher:
     def __init__(self, dimacs_, const_, eval_, method_='ff'):
         self.wdir = os.path.dirname(dimacs_) + "/smarch"
 
-        self.features, self.clauses, self.vcount = read_dimacs(dimacs_)
+        self.numbering, self.features, = sampleLinux.read_kconfig_extract()
         self.const = const_
 
         self.eval = eval_
@@ -73,14 +43,18 @@ class Searcher:
     # one recursion of sampling, benchmarking, and finding noteworthy features
     def _recurse(self, n_, obj_, constraints_, added=(), goal_=(), verbose=False):
         _exhaust = False
-
-        remaining = count(self.dimacs, constraints_)
+        remaining = n_ + 1
+        # remaining = count(self.dimacs, constraints_)
         if remaining < n_:
             n_ = remaining
+            print("EXAUST")
             _exhaust = True
 
         # sample configurations with constraints
-        _samples = master(self.vcount, self.clauses, n_, self.wdir, constraints_, 6, not verbose)
+        # _samples = master(self.vcount, self.clauses, n_, self.wdir, constraints_, 6, not verbose)
+        _samples = sampleLinux.sample_linux(self.linux, self.outdir, self.const, self.features, n_)
+        
+
 
         # sample configurations using KUS
         # _samples = sample(self.vcount, self.clauses, n_, constraints_)
@@ -88,6 +62,7 @@ class Searcher:
         #     _samples = sample(self.vcount, self.clauses, n_, constraints_)
 
         if not _samples:
+            print("Not Samples")
             return False, False, False
 
         # evaluate configurations
@@ -98,6 +73,7 @@ class Searcher:
             print("Evaluation time: " + str(time.time() - eval_time))
 
         if not _exhaust:
+            print("deducing notwworhy")
             # deduce noteworthy features (dynamic objective selection)
             if len(goal) != 0 and self.method == 'dr':
                 data = [m[1] for m in _measurements]
@@ -108,8 +84,11 @@ class Searcher:
 
                 # deduce noteworthy features
                 _noteworthy = get_noteworthy(self.features, _measurements, opt)
+                print("get_notwworthy:")
+                print(_noteworthy)
             else:
                 # deduce noteworthy features(distance based)
+                print("deduce notherworthy distance based")
                 _noteworthy = get_noteworthy(self.features, _measurements, obj_, goal_)
 
             for ntw in _noteworthy:
@@ -120,11 +99,14 @@ class Searcher:
 
             # determine termination
             if len(_noteworthy) != 0:
+                print("len noteworthy not 0")
                 return True, _noteworthy, _measurements
             else:
+                print("Empty noteworthy")
                 return False, _noteworthy, _measurements
         else:
-            return False, [], _measurements
+             print("bad return")
+             return False, [], _measurements
 
     # filter reusable samples
     def _filter_reusable(self, measurements_, ntwf_):
@@ -141,7 +123,7 @@ class Searcher:
         return filtered
 
     # recursive search
-    def srs(self, n_, obj_, rmax=-1, verbose_=False, nlimit_=-1, n1_=0, goal_=()):
+    def srs(self, n_, obj_, rmax=-1, verbose_=True, nlimit_=-1, n1_=0, goal_=()):
         popl = set()
         rec = True
         ntwf = self.const.copy()
@@ -156,16 +138,23 @@ class Searcher:
 
                 if nlimit_ > 0 and nlimit_ - len(popl) < n_:
                     n_ = nlimit_ - len(popl)
+                    print("first ")
 
                 if n1_ != 0 and init:
                     rec, ntw, measurements = self._recurse(n1_, obj_, ntwf, reusable, goal_, verbose_)
+                    print("second ")
                 else:
                     rec, ntw, measurements = self._recurse(n_, obj_, ntwf, reusable,  goal_, verbose_)
+                    print("third")
 
                 if not measurements:
+                    print("Not measurements")
                     return False
 
                 ntwf = ntwf + ntw
+                print("------ntwf")
+                print(ntwf)
+                print("-------")
 
                 reusable = self._filter_reusable(measurements, ntwf)
 
@@ -180,15 +169,15 @@ class Searcher:
                         print(',', end='')
                     print()
 
-                    # print("Accumulated noteworthy features: ", end='')# + str(ntw))
-                    # for ntc in ntwf:
-                    #     for f in ntc:
-                    #         if f < 0:
-                    #             print('-' + self.features[abs(f)-1][1], end=' ')
-                    #         if f > 0:
-                    #             print(self.features[abs(f)-1][1], end=' ')
-                    #     print(',', end='')
-                    # print()
+                    print("Accumulated noteworthy features: ", end='')# + str(ntw))
+                    for ntc in ntwf:
+                        for f in ntc:
+                            if f < 0:
+                                print('-' + self.features[abs(f)-1][1], end=' ')
+                            if f > 0:
+                                print(self.features[abs(f)-1][1], end=' ')
+                        print(',', end='')
+                    print()
 
                 # collect measurements
                 for m in measurements:
@@ -216,25 +205,27 @@ class Searcher:
 
 # run script
 if __name__ == "__main__":
-    target = "axtls_2_1_4"  # system name (dimacs file should be in FM folder)
+    target = "linux_4_17_6"  # system name (dimacs file should be in FM folder)
     type = "Kconfig"        # system type (SPLConqueror, LVAT, or Kconfig)
-    n = 30                  # number of samples per recursion
-    n1 = 30                 # number of samples for initial recursion
-    nrec = -1               # number of recursions (-1 for unbounded)
+    n = 5               # number of samples per recursion
+    n1 = 5                 # number of samples for initial recursion
+    nrec = -1              # number of recursions (-1 for unbounded)
     obj = 0                 # objective index to optimize
-    goal = (0, 0)           # goal point to optimize for MOO (check evaluation.py for setup)
-    rep = 1                 # numer of repetitions to get statistics on results
+    goal = ()           # goal point to optimize for MOO (check evaluation.py for setup)
+    rep = 2                # numer of repetitions to get statistics on results
 
     dimacs = root + "/FM/" + target + ".dimacs"
-    constfile = root + "/FM/" + target + ".const"
+    constfile = root + "/trash/test.const"
     wdir = os.path.dirname(dimacs) + "/smarch"
     if not os.path.exists(wdir):
         os.makedirs(wdir)
 
-    features, clauses, vcount = read_dimacs(dimacs)
+    # features, clauses, vcount = read_dimacs(dimacs)
+    numbering, features = sampleLinux.read_kconfig_extract()
     const = ()
     if constfile != '':
-        const = read_constraints(constfile, features)
+        const = sampleLinux.read_constraints(constfile,features)
+        #const = read_constraints(constfile, features)
 
     eval = ''
     if type == 'SPLConqueror':
@@ -248,6 +239,10 @@ if __name__ == "__main__":
     elif type == "Kconfig":
         # data setup for Kconfig systems (check vagrant path in kconfigIO.py)
         eval = Kconfig(target, features)
+    elif type == 'Linux':
+        eval = Linux(target, features)
+        print("Set eval")
+        exit(1)
     else:
         print("ERROR: Invalid system type")
         exit(1)
@@ -259,9 +254,10 @@ if __name__ == "__main__":
         res = list()
 
         searcher = Searcher(dimacs, const, eval)
-        found = searcher.srs(n, obj, nrec, verbose_=False, n1_=n1, goal_=goal)
+        found = searcher.srs(n, obj, nrec, verbose_=True, n1_=n1, goal_=goal)
 
         if not found:
+            print("not found")
             r -= 1
             continue
 
