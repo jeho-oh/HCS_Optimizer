@@ -7,7 +7,7 @@ root = os.path.dirname(os.path.abspath(__file__))
 path.append(root + "/Smarch")
 
 from Smarch.smarch_opt import master, read_dimacs
-from kconfigIO import gen_configs, build_samples, KCONFIG
+from kconfigIO import gen_configs, build_samples, KCONFIG, LINUX_DIR, WORK_DIR
 
 
 def get_distance(p1, p2):
@@ -30,7 +30,7 @@ class Kconfig:
 
     def __init__(self, target_, features_):
         self.target = target_
-        self.wdir = KCONFIG + '/cases/' + target_ + "/nbuild/configs"
+        self.wdir = WORK_DIR
         self.features = features_
 
         if not os.path.exists(self.wdir):
@@ -54,7 +54,8 @@ class Kconfig:
         gen_configs(self.target, self.features, samples_, self.wdir)
 
         # build samples
-        build_samples(self.target, 'nbuild/configs','/media/space/elkdat/linux/')
+        print("Building samples")
+        build_samples(LINUX_DIR, self.wdir)
 
         # check build errors
         i = 0
@@ -111,7 +112,7 @@ class Kconfig:
 
     def evaluate_existing(self, configs):
         # build samples
-        build_samples(self.target, configs,'/media/space/elkdat/linux/')
+        build_samples(self.target, configs)
 
         # read build size reports
         file = self.wdir + "/binary_sizes.txt"
@@ -361,17 +362,29 @@ class LVAT:
 
 # run script
 if __name__ == "__main__":
-    target = 'fiasco'
-    n = 5
+    import sampleLinux
+    target = 'linux_4_17_6'
+    n = 1
     dimacs = root + "/FM/" + target + ".dimacs"
     data = root + "/BM/" + target + ".dimacs.augment" #root + "/BM/" + target + ".txt"
     wdir = os.path.dirname(dimacs) + "/smarch"
     const = list()
-
-    features, clauses, vcount = read_dimacs(dimacs)
-    samples = master(vcount, clauses, n, wdir, const, 6, False)
-
-    eval = LVAT(target, features, data)
+    linux = '/media/space/linuxnext/linux-next/'
+    outdir = '/home/nod/Desktop/kconfig_case_studies/cases/linux_4_17_6/nbuild/configs/'
+    numbering, features = sampleLinux.read_kconfig_extract()
+    constfile = root + "/trash/test.const"
+    const = sampleLinux.read_constraints(constfile,features)
+    # features, clauses, vcount = read_dimacs(dimacs)
+    genned_configs = list()
+    samples = sampleLinux.sample_linux(linux, outdir, const, features, n)
+    import os
+    for file_ in os.listdir("/home/nod/Desktop/kconfig_case_studies/cases/linux_4_17_6/nbuild/configs/"):
+        if file_.endswith(".config"):
+            genned_configs.append(outdir + file_)
+    for gc in genned_configs:
+        valid = sampleLinux.validate_config(linux, gc )
+        print(valid)
+    eval = Kconfig(target, features)
     measurements = eval.evaluate(samples, (0,0,0,0))
 
     #eval.print_normalized()

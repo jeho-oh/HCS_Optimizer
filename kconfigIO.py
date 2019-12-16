@@ -8,8 +8,10 @@ from pathlib import Path
 root = os.path.dirname(os.path.abspath(__file__))
 
 home = str(Path.home())
-KCONFIG = '/home/nod/Desktop/kconfig_case_studies'
-BUILD = 'bash ' + root + '/buildSamplesLinux.sh'
+KCONFIG = " "
+BUILD = " "
+LINUX_DIR = "/media/space/linuxnext/linux-next/"
+WORK_DIR = "/media/space/HC2/work/"
 
 
 def is_int(s):
@@ -63,7 +65,6 @@ def gen_configs(target_, features_, samples_, cdir_):
     #print("Configs generated")
 
 
-def gen_configs_nf(target_, features_, samples_, cdir_):
     nfs = list()
     bfs = list()
     lfs = list()
@@ -218,18 +219,39 @@ def read_configs_kmax(features_, cdir_):
 
     return samples
 
-# $1: target name
-# $2: config folder name
-# $3: makefile location
-# $4: Kconfig directory
 
-def build_samples(target_, configs_, makefile_):
-    # run vagrant for build
-    if target_ == 'fiasco_17_10':
-        check_call(BUILD + " " + target_ + " " + configs_ + " " + makefile_ + "/src/kernel/fiasco" + " " + KCONFIG, shell=True, stdout=DEVNULL, stderr=DEVNULL)
-    else:
-        from fakebuild import gen
-        import glob
-        count = len(glob.glob1("/home/nod/Desktop/kconfig_case_studies/cases/linux_4_17_6/nbuild/configs/","*.config"))
-        gen(count, "/home/nod/Desktop/kconfig_case_studies/cases/linux_4_17_6/nbuild/configs/")
-        check_call("bash bb.sh", shell=True, stdout=DEVNULL, stderr=DEVNULL)
+def build_samples(target_, configs_):
+    import dobuild
+    build_sizes = list()
+    properties = dobuild.get_props('linux')
+    configs = [f for f in os.listdir(configs_) if os.path.isfile(os.path.join(configs_, f)) and f.endswith(".config")]
+    configs.sort(key=lambda s: int(s[:s.find('.')]))
+    for file_ in configs:
+        if file_.endswith(".config"):   
+            dobuild.clean( target_, properties)
+            dobuild.copy_config(target_, properties, configs_ + file_)
+            ret_code = dobuild.run_make(target_, properties, file_)
+            build_size = dobuild.size(target_, properties)
+            build_sizes.append([build_size,ret_code])
+
+    with open(configs_ + "binary_sizes.txt", "w") as b, open(configs_ + "return_codes.txt","w") as r:
+        for bs in build_sizes:
+            b.write('binary size (in bytes): ' + str(bs[0]) + '\n')
+            r.write('return code ' + str(bs[1]) + '\n')
+
+
+
+        # check_call("cd /media/space/linuxnext/linux-next &&  /media/space/HC2/HCS_Optimizer/driver.sh build linux_4_17_6 nbuild/configs", shell=True, stdout=DEVNULL, stderr=DEVNULL)
+        # check_call(BUILD + " " + target_ + " " + configs_ + " " + target_ + " " + KCONFIG, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+        #pass
+# def build_samples(target_, configs_, makefile_):
+#     # run vagrant for build
+#     if target_ == 'fiasco_17_10':
+#         check_call(BUILD + " " + target_ + " " + configs_ + " " + makefile_ + "/src/kernel/fiasco" + " " + KCONFIG, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+#     else:
+#         #  from fakebuild import gen
+#         #  import glob
+#          #print("building")
+#          #count = len(glob.glob1(configs_dir,"*.config"))
+#          #gen(count, configs_dir)
+#         check_call("cd /media/space/linuxnext/linux-next &&  /media/space/HC2/HCS_Optimizer/driver.sh build linux_4_17_6 nbuild/configs", shell=True, stdout=DEVNULL, stderr=DEVNULL)

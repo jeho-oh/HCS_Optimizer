@@ -54,7 +54,9 @@ def get_noteworthy(features_, measurements_, obj_, goal=()):
     common = list()
 
     if len(measurements_) > 1:
+        print("Len measurements > 1")
         if len(goal) != 0:
+            print("sorting by goal distance")
             # sort by goal distance
             sortedlist = sorted(measurements_, key=lambda x: x[2], reverse=False)
 
@@ -71,14 +73,25 @@ def get_noteworthy(features_, measurements_, obj_, goal=()):
 
             # find common features from best two measurements
             common = list(set(sortedlist[0][0]).intersection(second))
+            print("lenght of common..",end=" ")
+            print(len(common))
 
         else:
+            print("sorting by objective")
             # sort by objective
             sortedlist = sorted(measurements_, key=lambda x: x[1][obj_], reverse=False)
 
             # find common features from best two measurements
             common = list(set(sortedlist[0][0]).intersection(sortedlist[1][0]))
+            print("lenght of common..",end=" ")
+            print(len(common))
+            common_on = 0
+            for c in common:
+                if c > 0:
+                    common_on += 1
+            print("Number of common features that arent off " + str(common_on))
 
+        # print("printing common: ",end='')
         # for c in common:
         #     if c > 0:
         #         print(features_[abs(c)-1][1], end=",")
@@ -98,21 +111,21 @@ def get_noteworthy(features_, measurements_, obj_, goal=()):
                         ex_measure.append(m[2])
                 else:
                     if c in m[0]:
+                        #print("c in m[0]")
                         in_measure.append(m[1][obj_])
                     else:
                         ex_measure.append(m[1][obj_])
 
             if len(in_measure) > 1 and len(ex_measure) > 1:
                 if tmean(in_measure) < tmean(ex_measure):
-                    #res = welch_t(in_measure, ex_measure, 0.95)
-                    #res = bootstrap(in_measure, ex_measure, 0.95)
-                    res = u_test(in_measure, ex_measure, 0.95)
+                    res_w = welch_t(in_measure, ex_measure, 0.3)
+                    res_bs = bootstrap(in_measure, ex_measure, 0.3)
+                    res_u = u_test(in_measure, ex_measure, 0.3)
 
-                    if res:
+                    if res_w or res_bs or res_u:
                         found = list()
                         found.append(c)
                         _noteworthy.append(found)
-
     # for c in _noteworthy:
     #     if c[0] > 0:
     #         print(features_[abs(c[0])-1][1], end=",")
@@ -122,6 +135,8 @@ def get_noteworthy(features_, measurements_, obj_, goal=()):
 
     # filter selection of alternative features
     filtered = list()
+    # print("len ntw after filtered")
+    # print(len(_noteworthy))
     for ntw in _noteworthy:
         if len(ntw) == 1:
             if len(features_[abs(ntw[0])-1]) > 2:

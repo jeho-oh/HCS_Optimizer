@@ -10,17 +10,24 @@ root = os.path.dirname(os.path.abspath(__file__))
 KUS = os.path.dirname(os.path.abspath(__file__)) + "/KUS"
 path.append(root + "/Smarch")
 
+from kconfigIO import LINUX_DIR, WORK_DIR
+
 from Smarch.smarch_opt import master, read_dimacs, read_constraints, gen_dimacs, checksat, count
 from evalutation import Kconfig, SPLConqueror, LVAT
 from analysis import get_noteworthy
 
+def parse():
+	f = open("paths.txt", "r")
+	s = f.read().splitlines()
+	f.close()
+	return s[0], s[1],s[2],s[3]
 
 
 class Searcher:
     dimacs = ''
     features = list()
-    linux = "/media/space/elkdat/linux/"
-    outdir = "/home/nod/Desktop/kconfig_case_studies/cases/linux_4_17_6/nbuild/configs"
+    linux = LINUX_DIR
+    outdir = WORK_DIR
 
     # clauses = list()
     # vcount = list()
@@ -30,12 +37,12 @@ class Searcher:
     wdir = ''
     method = ''
 
-    def __init__(self, dimacs_, const_, eval_, method_='ff'):
+    def __init__(self, dimacs_, const_, eval_, linux, outdir, method_='dr'):
         self.wdir = os.path.dirname(dimacs_) + "/smarch"
-
+        self.linux = linux
         self.numbering, self.features, = sampleLinux.read_kconfig_extract()
         self.const = const_
-
+        self.outdir = outdir 
         self.eval = eval_
         self.dimacs = dimacs_
         self.method = method_
@@ -73,9 +80,8 @@ class Searcher:
             print("Evaluation time: " + str(time.time() - eval_time))
 
         if not _exhaust:
-            print("deducing notwworhy")
             # deduce noteworthy features (dynamic objective selection)
-            if len(goal) != 0 and self.method == 'dr':
+            if len(goal) != 0 and self.method == 'ff':
                 data = [m[1] for m in _measurements]
                 dist = list()
                 for i in range(0, len(data[0])):
@@ -88,7 +94,6 @@ class Searcher:
                 print(_noteworthy)
             else:
                 # deduce noteworthy features(distance based)
-                print("deduce notherworthy distance based")
                 _noteworthy = get_noteworthy(self.features, _measurements, obj_, goal_)
 
             for ntw in _noteworthy:
@@ -99,13 +104,10 @@ class Searcher:
 
             # determine termination
             if len(_noteworthy) != 0:
-                print("len noteworthy not 0")
                 return True, _noteworthy, _measurements
             else:
-                print("Empty noteworthy")
                 return False, _noteworthy, _measurements
         else:
-             print("bad return")
              return False, [], _measurements
 
     # filter reusable samples
@@ -138,24 +140,16 @@ class Searcher:
 
                 if nlimit_ > 0 and nlimit_ - len(popl) < n_:
                     n_ = nlimit_ - len(popl)
-                    print("first ")
 
                 if n1_ != 0 and init:
                     rec, ntw, measurements = self._recurse(n1_, obj_, ntwf, reusable, goal_, verbose_)
-                    print("second ")
                 else:
                     rec, ntw, measurements = self._recurse(n_, obj_, ntwf, reusable,  goal_, verbose_)
-                    print("third")
 
                 if not measurements:
-                    print("Not measurements")
                     return False
 
                 ntwf = ntwf + ntw
-                print("------ntwf")
-                print(ntwf)
-                print("-------")
-
                 reusable = self._filter_reusable(measurements, ntwf)
 
                 if verbose_:
@@ -207,13 +201,14 @@ class Searcher:
 if __name__ == "__main__":
     target = "linux_4_17_6"  # system name (dimacs file should be in FM folder)
     type = "Kconfig"        # system type (SPLConqueror, LVAT, or Kconfig)
-    n = 5               # number of samples per recursion
-    n1 = 5                 # number of samples for initial recursion
+    n = 1               # number of samples per recursion
+    n1 = 1              # number of samples for initial recursion
     nrec = -1              # number of recursions (-1 for unbounded)
     obj = 0                 # objective index to optimize
     goal = ()           # goal point to optimize for MOO (check evaluation.py for setup)
-    rep = 2                # numer of repetitions to get statistics on results
-
+    rep = 1                # numer of repetitions to get statistics on results
+    linux = LINUX_DIR
+    outdir = WORK_DIR
     dimacs = root + "/FM/" + target + ".dimacs"
     constfile = root + "/trash/test.const"
     wdir = os.path.dirname(dimacs) + "/smarch"
@@ -253,7 +248,7 @@ if __name__ == "__main__":
     for r in range(0, rep):
         res = list()
 
-        searcher = Searcher(dimacs, const, eval)
+        searcher = Searcher(dimacs, const, eval, linux, outdir)
         found = searcher.srs(n, obj, nrec, verbose_=True, n1_=n1, goal_=goal)
 
         if not found:
@@ -305,18 +300,18 @@ if __name__ == "__main__":
     print(avg)
     print(std)
 
-    # dt = datetime.datetime.now()
-    # outdir = root + "/Results/" + target + "/"
-    # if not os.path.exists(outdir):
-    #     os.makedirs(outdir)
-    # outfile = str(n1) + "_" + str(n) + "_" + str(dt.hour) + str(dt.minute) + ".out"
-    #
-    # with open(outdir + outfile, 'w') as file:
-    #     file.write("Stats: \n")
-    #     file.write(str(avg) + "\n")
-    #     file.write(str(std) + "\n\n")
-    #
-    #     for res in result:
-    #         file.write(str(res) + "\n")
-    #
-    #     file.close()
+    dt = datetime.datetime.now()
+    outdir = root + "/Results/" + target + "/"
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    outfile = str(n1) + "_" + str(n) + "_" + str(dt.hour) + str(dt.minute) + ".out"
+    
+    with open(outdir + outfile, 'w') as file:
+        file.write("Stats: \n")
+        file.write(str(avg) + "\n")
+        file.write(str(std) + "\n\n")
+    
+        for res in result:
+            file.write(str(res) + "\n")
+    
+        file.close()

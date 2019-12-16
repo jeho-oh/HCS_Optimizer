@@ -5,7 +5,7 @@ import subprocess
 import random
 import string
 from Smarch.smarch_opt import master, read_dimacs
-DEBUG = True
+DEBUG = False
 import os
 
 class cd:
@@ -25,23 +25,23 @@ def validate_config(_linux, _config):
     sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout_, stderr_ = sp.communicate()
     if DEBUG:
-        newmethod916(stdout_, stderr_)
+        print_all_output(stdout_, stderr_)
     cmd = "cp " +  _config + " "  + _linux + "/.config"
 
     sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout_, stderr_ = sp.communicate()
     if DEBUG:
-        newmethod916(stdout_, stderr_)
+        print_all_output(stdout_, stderr_)
     cmd = "cd " + _linux + "&& make olddefconfig"
     sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout_, stderr_ = sp.communicate()
     if(stderr_):
         print("error")
     if DEBUG:
-        newmethod916(stdout_, stderr_)
+        print_all_output(stdout_, stderr_)
     return filecmp.cmp(_config, _linux + "/.config")
 
-def newmethod916(stdout_, stderr_):
+def print_all_output(stdout_, stderr_):
     print(str(stdout_, sys.stdout.encoding))
     print(str(stderr_, sys.stdout.encoding))
 
@@ -53,7 +53,7 @@ def newmethod916(stdout_, stderr_):
 #     sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 #     stdout_, stderr_ = sp.communicate()
 #     if DEBUG:
-#         newmethod916(stdout_, stderr_)
+#         print_all_output(stdout_, stderr_)
 
 #     cmd = "cd " + _linux + "&& cp .config " + _configs + "/" + name + ".config"
 #     sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -62,12 +62,13 @@ def newmethod916(stdout_, stderr_):
 #     print(_configs)
 
 #     if DEBUG:
-#         newmethod916(stdout_, stderr_)
+#         print_all_output(stdout_, stderr_)
     
 def sample_linux(_linux, _outdir, constraints, features_, num):
     write_constraints(constraints, "/tmp/apple", features_)   
     for i in range(num):
-        gen_constrained_config(_linux, _outdir, "/tmp/apple", str(i))  
+        return_code = gen_constrained_config(_linux, _outdir, "/tmp/apple", str(i))
+    if DEBUG:
         print("generating sample in " + _outdir)
     return read_configs_kmax(features_,_outdir)
 
@@ -80,17 +81,18 @@ def gen_constrained_config(_linux, _outdir, _constraintsfile, name):
         cmd = "klocalizer -a x86_64 --random-seed " + seed + " --constraints-file " + _constraintsfile
         sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout_, stderr_ = sp.communicate()
+        return_code = sp.returncode
+        if return_code != 0:
+            print("klocalizer errror")
+            print_all_output(stdout_, stderr_)   
+        
         if DEBUG:
-            newmethod916(stdout_, stderr_)
-
+            print_all_output(stdout_, stderr_)
         cmd = "cp .config " + _outdir + "/" + name + ".config"
         sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout_, stderr_ = sp.communicate()
-        # valid = validate_config(_linux, _configs + "/" + name + ".config" )
-        print(_outdir)
+        return return_code
 
-        if DEBUG:
-            newmethod916(stdout_, stderr_)
 def write_constraints(constraints, constfile_, features_):
     """write out constraint file"""
     constraintsf = [item for sublist in constraints for item in sublist]
@@ -250,7 +252,7 @@ def read_dimacs_features(dimacsfile_):
 
 def read_kconfig_extract():
     features = list()
-    kconfig_extract_file = "/media/space/elkdat/linux/.kmax/kclause/x86_64/kconfig_extract"
+    kconfig_extract_file = "/media/space/linuxnext/linux-next/.kmax/kclause/x86_64/kconfig_extract"
     kconfig_extract = get_kconfig_extract(kconfig_extract_file)
     if kconfig_extract == None:
         print("Error")
