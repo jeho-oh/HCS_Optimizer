@@ -142,9 +142,10 @@ def size(bscource, properties):
     with cd(bscource):
         cmd = "du -bc " + properties[binaries] +  " + | tail -n1 | cut -f1"
         sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        stdout_, stderr_ = sp.communicate()
         if sp.returncode != 0:
             print("Error measuring build size")
 
-        stdout_, stderr_ = sp.communicate()
         return (str(stdout_, sys.stdout.encoding))
 
