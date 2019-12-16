@@ -12,7 +12,7 @@ path.append(root + "/Smarch")
 
 from kconfigIO import LINUX_DIR, WORK_DIR
 
-from Smarch.smarch_opt import master, read_dimacs, read_constraints, gen_dimacs, checksat, count
+# from Smarch.smarch_opt import master, read_dimacs, read_constraints, gen_dimacs, checksat, count
 from evalutation import Kconfig, SPLConqueror, LVAT
 from analysis import get_noteworthy
 
@@ -40,7 +40,7 @@ class Searcher:
     def __init__(self, dimacs_, const_, eval_, linux, outdir, method_='dr'):
         self.wdir = os.path.dirname(dimacs_) + "/smarch"
         self.linux = linux
-        self.numbering, self.features, = sampleLinux.read_kconfig_extract()
+        self.numbering, self.features, = sampleLinux.read_kconfig_extract(LINUX_DIR)
         self.const = const_
         self.outdir = outdir 
         self.eval = eval_
@@ -216,7 +216,7 @@ if __name__ == "__main__":
         os.makedirs(wdir)
 
     # features, clauses, vcount = read_dimacs(dimacs)
-    numbering, features = sampleLinux.read_kconfig_extract()
+    numbering, features = sampleLinux.read_kconfig_extract(LINUX_DIR)
     const = ()
     if constfile != '':
         const = sampleLinux.read_constraints(constfile,features)

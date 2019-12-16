@@ -250,12 +250,13 @@ def read_dimacs_features(dimacsfile_):
                 _features.append(tuple(_feature))
     return _features
 
-def read_kconfig_extract():
+def read_kconfig_extract(linux_):
     features = list()
-    kconfig_extract_file = "/media/space/linuxnext/linux-next/.kmax/kclause/x86_64/kconfig_extract"
+    kconfig_extract_file = linux_ + ".kmax/kclause/x86_64/kconfig_extract"
     kconfig_extract = get_kconfig_extract(kconfig_extract_file)
     if kconfig_extract == None:
-        print("Error")
+        print("Error, kconfig extract not found or invalid at " + kconfig_extract_file)
+        sys.exit(1)
     else:
         i = 1
         numbering = {}
