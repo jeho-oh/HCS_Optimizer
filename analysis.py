@@ -123,16 +123,17 @@ def get_noteworthy(features_, measurements_, obj_, goal=()):
     # filter selection of alternative features
     filtered = list()
     for ntw in _noteworthy:
-        if len(ntw) == 1:
-            if len(features_[abs(ntw[0])-1]) > 2:
-                if features_[abs(ntw[0])-1][2] == 'choice_bool' or features_[abs(ntw[0])-1][2] == 'alt':
-                    if ntw[0] < 0:
+        if features_[abs(ntw[0]) - 1][2] == 'bool':
+            if len(ntw) == 1:
+                if len(features_[abs(ntw[0])-1]) > 2:
+                    if features_[abs(ntw[0])-1][2] == 'choice_bool' or features_[abs(ntw[0])-1][2] == 'alt':
+                        if ntw[0] < 0:
+                            filtered.append(ntw)
+                    else:
                         filtered.append(ntw)
                 else:
-                    filtered.append(ntw)
-            else:
-                if ntw[0] < 0 and not features_[abs(ntw[0])-1][1].startswith('_X'):
-                    filtered.append(ntw)
+                    if ntw[0] < 0 and not features_[abs(ntw[0])-1][1].startswith('_X'):
+                        filtered.append(ntw)
 
     # print(noteworthy, end=';')
 
