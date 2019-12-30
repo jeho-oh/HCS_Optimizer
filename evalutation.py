@@ -63,13 +63,14 @@ class Kconfig:
         with open(file) as f:
             for line in f:
                 if '0' not in line:
-                    failed.append(i)
-                i += 1
+                    failed.append(1)
+                else:
+                    failed.append(0)
 
-        # exit if failed build exists
-        if len(failed) != 0:
-            print("Failed configs: " + str(failed))
-            exit(1)
+        # exit if failed build exists (commented: ignore sample if fails, not exit)
+        # if len(failed) != 0:
+        #     print("Failed configs: " + str(failed))
+        #     exit(1)
 
         # read build size reports
         file = self.wdir + "/binary_sizes.txt"
@@ -83,29 +84,28 @@ class Kconfig:
 
         # create measurement set
         _measurements = list()
-        i = 0
-        for s in samples_:
-            _m = list()
+        for i, s in enumerate(samples_):
+            if failed[i] == 0:  # check if build is failed
+                _m = list()
 
-            # configuration
-            _m.append(s)
+                # configuration
+                _m.append(s)
 
-            # number of unselected features
-            unset = 0
-            for v in s:
-                if v < 0:
-                    unset += 1
+                # number of unselected features
+                unset = 0
+                for v in s:
+                    if v < 0:
+                        unset += 1
 
-            # build size
-            data = (buildsizes[i] / 1000, unset / 2)
-            _m.append(data)
+                # build size
+                data = (buildsizes[i], unset)
+                _m.append(data)
 
-            # goal distance
-            if len(goal_) != 0:
-                _m.append(get_distance(data, goal_))
+                # goal distance
+                if len(goal_) != 0:
+                    _m.append(get_distance(data, goal_))
 
-            _measurements.append(_m)
-            i += 1
+                _measurements.append(_m)
 
         return _measurements
 
