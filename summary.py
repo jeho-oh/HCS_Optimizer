@@ -1,25 +1,35 @@
 import os
-import sys
-import getopt
-from scipy.stats import tmean, tstd
+from scipy.stats import tmean, tstd, pearsonr, mannwhitneyu
+
+quiet = True
 
 
-def parse_info(infofile):
+def parse_info(infofile, codefile):
     data = list()
+    codes = list()
+
+    with open(codefile, 'r') as f:
+        for line in f:
+            if len(line) > 2:
+                raw = line[:len(line)-2].split(" ")
+                codes.append(int(raw[2]))
 
     with open(infofile, 'r') as f:
         for line in f:
-            config = list()
-            raw = line[:len(line)-2].split(" ")
+            if len(line) > 2:
+                if codes.pop(0) == 0:
+                    config = list()
+                    raw = line[:len(line)-2].split(" ")
 
-            config.append(int(raw[4]))  # build size
-            config.append(int(raw[6]))  # cve_count
-            config.append(int(raw[8]))  # dirs count
-            config.append(int(raw[10]))  # files count
-            config.append(float(raw[16]))  # build time
+                    config.append(float(raw[4]))  # build size
+                    config.append(float(raw[14]))  # unset
+                    config.append(float(raw[6]))  # cve_count
+                    config.append(float(raw[8]))  # dirs count
+                    config.append(float(raw[10]))  # files count
+                    config.append(float(raw[12]))  # set
+                    config.append(float(raw[20]))  # build time
 
-            data.append(config)
-
+                    data.append(config)
     return data
 
 
@@ -33,88 +43,114 @@ def parse_const(constfile):
     return const
 
 
-def analyze_rec(recdir):
-    data = parse_info(recdir + "/info.txt")
+def analyze_rec(recdir, norm):
+    data = parse_info(recdir + "/info.txt", recdir + "/return_codes.txt")
     const = parse_const(recdir + "/const.txt")
 
     # analysis of a recursion comes here
     dataT = list(map(list, zip(*data)))
+
+    if norm:
+        bmin = 666880
+        bmax = 130029952
+
+        stotal = 14323
+        smin = 248
+        smax = 11059
+
+        umax = stotal - smin
+        umin = stotal - smax
+
+        normb = [((d - bmin)/(bmax - bmin)) for d in dataT[0]]
+        #normu = [((d - umin)/(umax - umin)) for d in dataT[1]]
+        normu = [((d - smin) / (smax - smin)) for d in dataT[5]]
+
+        dataT[0] = normb.copy()
+        dataT[1] = normu.copy()
 
     avgs = [tmean(d) for d in dataT]
     stds = [tstd(d) for d in dataT]
     mins = [min(d) for d in dataT]
     maxs = [max(d) for d in dataT]
 
-    if not quiet:
-        print("average: " + str(avgs))
-        print("stdev: " + str(stds))
-        print("max: " + str(maxs))
-        print("min: " + str(mins))
+    corr = pearsonr(dataT[0], dataT[1])
 
-    return [avgs, stds, mins, maxs, const]
+    return avgs + stds + mins + maxs + list(corr), dataT, const
 
 
-def analyze_rep(repdir):
+def analyze_rep(repdir, outdir='', norm=False):
     rec = list()
-    const = set()
-
     for root, dirs, filenames in os.walk(repdir):
         rec = dirs.copy()
         break
 
-    #sorted(rec)
+    repStats = list()
+    repData = list()
+    repConst = list()
 
-    recData = list()
+    prevConst = set()
     for r in range(len(rec)):
-        if not quiet:
-            print(">> rec"+str(r))
+        stats, data, const = analyze_rec(repdir + "/rec" + str(r), norm)
+        new = const - prevConst
+        prevConst = const.copy()
 
-        res = analyze_rec(repdir + "/rec" + str(r))
-        new = res[-1] - const
-        print("new const: " + str(len(new)))
-        const = res[-1].copy()
+        repStats.append(stats)
+        repData.append(data)
+        repConst.append(new)
+
+        if not quiet:
+            print(">> rec"+str(r)+": ", end="")
+            print(stats)
+            print("new const: " + str(len(new)))
 
     # analysis of an experiment comes here
 
+    # output files
+    # with open(outdir + "/repStats.csv", 'w') as f:
+    #     f.write("")
+    #
+    #     for st in repStats:
+    #         f.write(str(st)[1:-1] + '\n')
+    #     f.close()
 
-# run script
-if __name__ == "__main__":
-    test = False
-    quiet = False
+    return repStats, repData, repConst
 
-    if test:
-        repdir = "/home/jeho-lab/Test/rep0"
-        analyze_rep(repdir)
-    else:
-        # get parameters from console
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "ho:q", ['help', "odir=", 'quiet'])
-        except getopt.GetoptError:
-            print('summary.py -o <outputdir> -q | <repdir>')
-            sys.exit(2)
 
-        if len(args) < 1:
-            print('summary.py -o <outputdir> -q | <repdir>')
-            sys.exit(2)
+def analyze_exp(expdir, rep, goal, norm=False):
+    expStats = list()
+    expData = list()
+    expConst = list()
 
-        repdir = args[0]
+    # get data
+    for i, g in enumerate(goal):
+        outfile = ""
+        repdir = expdir + g + "/rep" + str(rep)
+        repStats, repData, repConst = analyze_rep(repdir, outfile, norm)
 
-        #  process parameters
-        for opt, arg in opts:
-            if opt == '-h':
-                print('summary.py -o <outputdir> -q | <repdir>')
-                sys.exit()
-            elif opt in ("-o", "--odir"):
-                wdir = arg
-                out = True
-                if not os.path.exists(wdir):
-                    os.makedirs(wdir)
-                print("File output not yet implemented")
-                #print("Output directory: " + wdir)
-            elif opt in ("-q", "--quiet"):
-                quiet = True
-            else:
-                print("Invalid option: " + opt)
+        statsT = list(map(list, zip(*repStats)))
+        expStats.append(statsT)
+        expData.append(repData)
+        expConst.append(repConst)
 
-        analyze_rep(repdir)
+    # # initial sample consistency analysis
+    # initialData = list()
+    # for rep in expData:
+    #     initialData.append(rep[0])#list(map(list, zip(*rep[0]))))
+    #
+    # for i in range(len(initialData)):
+    #     for j in range(i, len(initialData)):
+    #         print(goal[i] + ' vs ' + goal[j])
+    #         print(mannwhitneyu(initialData[i][0], initialData[j][0]))
+    #         print(mannwhitneyu(initialData[i][1], initialData[j][1]))
+    #
+    # allbuild = list()
+    # allunset = list()
+    # for i in range(len(initialData)):
+    #     print(pearsonr(initialData[i][0], initialData[i][1]))
+    #     allbuild += initialData[i][0]
+    #     allunset += initialData[i][1]
+    # print(pearsonr(allbuild, allunset))
+
+    return expStats, expData, expConst
+
 
